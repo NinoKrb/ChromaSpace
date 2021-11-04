@@ -1,4 +1,9 @@
-import pygame, sys, time, os, random
+import pygame
+import sys
+import time
+import os
+import random
+
 
 class Settings(object):
     window_height = 1000
@@ -7,29 +12,30 @@ class Settings(object):
     path_file = os.path.dirname(os.path.abspath(__file__))
     path_image = os.path.join(path_file, "Storage/Images/")
     path_font = os.path.join(path_file, "Storage/Fonts/")
-    title = "ChromeSpace"
+    title = "ChromaSpace - The Game"
 
-    spaceship_size = (75,104)
+    spaceship_size = (75, 104)
     spaceship_speed_x = 8
     spaceship_speed_y = 8
     spaceship_lives = 3
-    spaceship_spawnpoint = (window_height - window_height / 4, window_width // 2 - spaceship_size[0] // 2)
+    spaceship_spawnpoint = (window_height - window_height / 4,window_width // 2 - spaceship_size[0] // 2)
 
     asteroid_counter_delay = 100
     max_asteroid_counter_delay = 50
     max_asteroid_size_multiplier = 2
     asteroid_default_speed_y = 5
-    asteroid_size = (54,45)
+    asteroid_size = (54, 45)
 
-    bonus_size = (35,35)
+    bonus_size = (35, 35)
     bonus_counter_delay = 400
     bonus_heart_ration = (1, 10)
 
-    point_text = (25,25)
+    point_text = (25, 25)
     click_to_start_alpha_speed = 0.7
     font_color = (70, 108, 255)
-    
+
     clock = 60
+
 
 class Spaceship(pygame.sprite.Sprite):
     def __init__(self, filename):
@@ -75,19 +81,20 @@ class Spaceship(pygame.sprite.Sprite):
         self.y = self.rect.top
         self.x = self.rect.left
 
-    def teleport_to_spawnpoint(self): # Teleport the spaceship to the default spawnpoint
+    # Teleport the spaceship to the default spawnpoint
+    def teleport_to_spawnpoint(self):
         self.rect.top = Settings.spaceship_spawnpoint[0]
         self.rect.left = Settings.spaceship_spawnpoint[1]
         self.update_coords()
 
+
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, filename, multiplier):
         super().__init__()
-        self.speed = random.uniform(1 * multiplier,3 * multiplier)
-        print(self.speed)
-        self.size_multiplier = random.uniform(1,Settings.max_asteroid_size_multiplier)
+        self.speed = random.uniform(1 * multiplier, 3 * multiplier)
+        self.size_multiplier = random.uniform(1, Settings.max_asteroid_size_multiplier)
         self.update_sprite(filename)
-        self.rect.left = random.randint(0,int(Settings.window_width - Settings.asteroid_size[0] * self.size_multiplier))
+        self.rect.left = random.randint(0, int(Settings.window_width - Settings.asteroid_size[0] * self.size_multiplier))
         self.rect.top = 0 - (Settings.asteroid_size[1] * self.size_multiplier)
 
     def update_sprite(self, filename):          # Update the asteroid sprite
@@ -96,18 +103,20 @@ class Asteroid(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
     def update(self):
-        self.rect.top += self.speed                     # Move the asteroid in direction to the bottom
+        # Move the asteroid in direction to the bottom
+        self.rect.top += self.speed
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+
 
 class Bonus(pygame.sprite.Sprite):
     def __init__(self, filename, type):
         super().__init__()
         self.type = type
-        self.speed = random.randint(1,4)
+        self.speed = random.randint(1, 4)
         self.update_sprite(filename)
-        self.rect.left = random.randint(0,Settings.window_width - Settings.bonus_size[0])
+        self.rect.left = random.randint(0, Settings.window_width - Settings.bonus_size[0])
         self.rect.top = 0 - Settings.bonus_size[1]
 
     def update_sprite(self, filename):          # Update the bonus sprite
@@ -116,17 +125,19 @@ class Bonus(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
     def update(self):
-        self.rect.top += self.speed                     # Move the bonus in direction to the bottom
+        # Move the bonus in direction to the bottom
+        self.rect.top += self.speed
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
+
 class Background(pygame.sprite.Sprite):
     def __init__(self, filename):
         super().__init__()
-        self.image = pygame.image.load(os.path.join(Settings.path_image, filename)).convert()             # Load Background image
-        pygame.transform.scale(self.image, (Settings.window_width, Settings.window_height))               # Scale Background image
-        self.rect = self.image.get_rect()                                                                 # Get rect of Background image
+        self.image = pygame.image.load(os.path.join(Settings.path_image, filename)).convert()
+        pygame.transform.scale(self.image, (Settings.window_width, Settings.window_height))
+        self.rect = self.image.get_rect()
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -134,11 +145,14 @@ class Background(pygame.sprite.Sprite):
 class Game(object):
     def __init__(self):
         super().__init__()
-        pygame.init()   
-        pygame.display.set_caption(Settings.title)                                                           # Set Display caption
+        pygame.init()
+        # Pygame essential settings
+        pygame.display.set_caption(Settings.title)
 
-        self.screen = pygame.display.set_mode((Settings.window_width, Settings.window_height))               # Set Display size
+        self.screen = pygame.display.set_mode((Settings.window_width, Settings.window_height))
         self.clock = pygame.time.Clock()
+
+        # Define Sprites & Spritegroups
         self.background = Background("background-space.png")
         self.spaceship = Spaceship("spaceship.png")
 
@@ -148,6 +162,7 @@ class Game(object):
         self.bonuses = pygame.sprite.Group()
         self.bonus_counter = 0
 
+        # Set default game values
         self.alpha_counter = 0
         self.alpha_direction = "down"
 
@@ -156,8 +171,11 @@ class Game(object):
         self.pause_menu = True
         self.game_over = False
 
+        # Set fonts for the game overlay
         self.font = pygame.font.Font(os.path.join(Settings.path_font, "ChubbyChoo-Regular.ttf"), 30)
         self.overlay_font = pygame.font.Font(os.path.join(Settings.path_font, "ChubbyChoo-Regular.ttf"), 50)
+
+        # Reset the game stats
         self.reset_stats()
 
     def run(self):  # Main game loop
@@ -167,12 +185,12 @@ class Game(object):
                 if self.pause_menu == False:
                     self.watch_for_control_events()
                     self.update()
-                
+
             self.watch_for_events()
             self.update_overlay()
             self.draw()
 
-    def draw(self): # Draw all sprites
+    def draw(self):  # Draw all sprites
         self.background.draw(self.screen)
         self.spaceship.draw(self.screen)
         self.asteroids.draw(self.screen)
@@ -198,7 +216,7 @@ class Game(object):
 
             if self.game_over:
                 score_text = self.font.render(f"Your score: {self.stats_points}", True, Settings.font_color)
-                self.screen.blit(score_text, ((Settings.window_width // 2 - score_text.get_rect().centerx), 75 + logo.get_rect().bottom))
+                self.screen.blit(score_text, ((Settings.window_width // 2 -score_text.get_rect().centerx), 75 + logo.get_rect().bottom))
 
             # Loading "click to start" text
             click_to_start = pygame.image.load(os.path.join(Settings.path_image, "ClickToStart.png")).convert_alpha()
@@ -273,7 +291,6 @@ class Game(object):
         # Check Asteroid delay
         if self.asteroid_counter >= self.asteroid_counter_delay:
             multiplier = 1 + self.asteroid_counter_speed
-            print(multiplier)
             self.asteroids.add(Asteroid("asteroid.png", multiplier))
             self.asteroid_counter = 0
 
@@ -302,7 +319,7 @@ class Game(object):
         self.reset_stats()
         self.game_over = False
 
-    def watch_for_events(self): # Check all essential press events
+    def watch_for_events(self):  # Check all essential press events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -323,8 +340,7 @@ class Game(object):
                     if self.pause_menu == False and self.game_over == False:
                         self.spaceship.special_teleport()
 
-
-    def watch_for_control_events(self): # Check for control press events
+    def watch_for_control_events(self):  # Check for control press events
         pressed = pygame.key.get_pressed()
         if pressed[pygame.K_w] or pressed[pygame.K_UP]:
             self.spaceship.move("up")
@@ -340,6 +356,7 @@ class Game(object):
 
         if pressed[pygame.K_ESCAPE]:
             self.running = False
+
 
 if __name__ == '__main__':
     os.environ['SDL_VIDEO_WINDOW_POS'] = '1'
