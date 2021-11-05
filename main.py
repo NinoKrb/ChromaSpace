@@ -18,6 +18,7 @@ class Settings(object):
     spaceship_speed_x = 8
     spaceship_speed_y = 8
     spaceship_lives = 3
+    spaceship_teleports = 3
     spaceship_spawnpoint = (window_height - window_height / 4,window_width // 2 - spaceship_size[0] // 2)
 
     asteroid_counter_delay = 100
@@ -33,6 +34,8 @@ class Settings(object):
     point_text = (25, 25)
     click_to_start_alpha_speed = 0.7
     font_color = (70, 108, 255)
+    font_color_warning = (255, 70, 70)
+    show_no_teleports_counter_delay = 250
 
     clock = 60
 
@@ -40,15 +43,17 @@ class Settings(object):
 class Spaceship(pygame.sprite.Sprite):
     def __init__(self, filename):
         super().__init__()
-        self.update_sprite(filename)
+        self.filename = filename
+        self.update_sprite()
         self.direction = "up"
+        self.special_teleport_mask = False
         self.teleport_to_spawnpoint()
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
-    def update_sprite(self, filename):          # Update the Spaceship sprite
-        self.image = pygame.image.load(os.path.join(Settings.path_image, filename)).convert_alpha()
+    def update_sprite(self):          # Update the Spaceship sprite
+        self.image = pygame.image.load(os.path.join(Settings.path_image, self.filename)).convert_alpha()
         self.image = pygame.transform.scale(self.image, Settings.spaceship_size)
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
@@ -81,12 +86,46 @@ class Spaceship(pygame.sprite.Sprite):
         self.y = self.rect.top
         self.x = self.rect.left
 
+    def sync_rect_coords(self):    # Sync the backup coords with the Spaceship rect coords
+        self.rect.top = self.y
+        self.rect.left = self.x
+
     # Teleport the spaceship to the default spawnpoint
     def teleport_to_spawnpoint(self):
         self.rect.top = Settings.spaceship_spawnpoint[0]
         self.rect.left = Settings.spaceship_spawnpoint[1]
         self.update_coords()
 
+    # Teleport the spaceship to a custom coordinate
+    def teleport_to_coords(self, x, y):
+        self.rect.top = y
+        self.rect.left = x
+        self.update_coords()
+
+    # Bonus Task: Special Teleporting
+    # It works by enlarging the spaceship sprite and thus clearing a radius around the actual sprite
+    def special_teleport(self):
+        if game.teleports - 1 >= 0:
+            game.teleports -= 1
+            self.update_coords()
+            random_x = random.randint(0, int(Settings.window_width - Settings.spaceship_size[0]))
+            random_y = random.randint(0, int(Settings.window_height - Settings.spaceship_size[1]))
+
+            self.image = pygame.transform.scale(self.image, (Settings.spaceship_size[0] * 4, Settings.spaceship_size[1] * 4))
+            self.rect = self.image.get_rect()
+            self.mask = pygame.mask.from_surface(self.image)
+
+            self.teleport_to_coords(random_x - (Settings.spaceship_size[0] * 4) // 2, random_y - (Settings.spaceship_size[1] * 4) // 2)
+            pygame.sprite.spritecollide(self, game.asteroids, True)
+
+            self.image = pygame.transform.scale(self.image, Settings.spaceship_size)
+            self.rect = self.image.get_rect()
+            self.mask = pygame.mask.from_surface(self.image)
+
+            self.teleport_to_coords(random_x, random_y)
+        else:
+            game.show_no_teleports = True
+        
 
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, filename, multiplier):
@@ -157,10 +196,7 @@ class Game(object):
         self.spaceship = Spaceship("spaceship.png")
 
         self.asteroids = pygame.sprite.Group()
-        self.asteroid_counter = 0
-
         self.bonuses = pygame.sprite.Group()
-        self.bonus_counter = 0
 
         # Set default game values
         self.alpha_counter = 0
@@ -207,7 +243,7 @@ class Game(object):
                 header_text = "Welcome to"
 
             header_text = self.overlay_font.render(header_text, True, Settings.font_color)
-            self.screen.blit(header_text, ((Settings.window_width // 2 - header_text.get_rect().centerx), 25))
+            self.screen.blit(header_text, (Settings.window_width // 2 - header_text.get_rect().centerx, 25))
 
             # Load Logo
             logo = pygame.image.load(os.path.join(Settings.path_image, "ChromaSpaceLogo.png")).convert_alpha()
@@ -234,12 +270,34 @@ class Game(object):
                 self.alpha_counter -= Settings.click_to_start_alpha_speed
 
             click_to_start.set_alpha(self.alpha_counter)
-            self.screen.blit(click_to_start, ((Settings.window_width // 2 - click_to_start.get_rect().centerx), Settings.window_height // 2))
+            self.screen.blit(click_to_start, (Settings.window_width // 2 - click_to_start.get_rect().centerx, Settings.window_height // 2))
 
         else:
+            # Hud/Stats Rendering
+
+            # Render Points
             points = self.font.render(f"{self.stats_points} Points", True, Settings.font_color)
             self.screen.blit(points, Settings.point_text)
-            self.screen.blit(self.font.render(f"{self.lives} Lives", True, Settings.font_color), (Settings.point_text[0], Settings.point_text[1] + points.get_rect().bottom))
+
+            # Render Lives
+            lives = self.font.render(f"{self.lives} Lives", True, Settings.font_color)
+            self.screen.blit(lives, (Settings.point_text[0], Settings.point_text[1] * 2))
+
+            # Render Teleports
+            teleports = self.font.render(f"{self.teleports} Teleports", True, Settings.font_color)
+            self.screen.blit(teleports, (Settings.point_text[0], Settings.point_text[1] * 3))
+
+            if self.show_no_teleports == True:
+                self.show_no_teleports_counter += 1
+
+                if self.show_no_teleports_counter >= Settings.show_no_teleports_counter_delay:
+                    self.show_no_teleports = False
+                    self.show_no_teleports_counter = 0
+
+                self.show_no_teleports_text = self.font.render("You have no Teleports left", True, Settings.font_color_warning)
+                self.screen.blit(self.show_no_teleports_text, (Settings.window_width // 2 - self.show_no_teleports_text.get_rect().centerx, Settings.window_height - Settings.window_height // 4))
+
+
 
     def update(self):
         # Update the spawn counters
@@ -314,6 +372,9 @@ class Game(object):
         self.asteroid_counter_speed = 0
         self.asteroid_counter_delay = Settings.asteroid_counter_delay
         self.lives = Settings.spaceship_lives
+        self.teleports = Settings.spaceship_teleports
+        self.show_no_teleports = False
+        self.show_no_teleports_counter = 0
 
     def reset_game(self):
         self.reset_stats()
