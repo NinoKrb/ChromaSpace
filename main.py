@@ -2,23 +2,22 @@ import pygame
 import os
 import random
 
-class Settings(object):
+class Settings():
     window_height = 1000
     window_width = 700
 
-    path_file = os.path.dirname(os.path.abspath(__file__))
-    path_image = os.path.join(path_file, "Storage/Images/")
-    path_font = os.path.join(path_file, "Storage/Fonts/")
+    base_file = os.path.dirname(os.path.abspath(__file__))
+    path_image = os.path.join(base_file, "assets/images/")
+    path_font = os.path.join(base_file, "assets/fonts/")
     title = "ChromaSpace - The Game"
-    clock = 60
+    fps = 60
 
     # Spaceship
-    spaceship_size = (75, 104)
+    initial_spaceship_size = (75, 104)
     spaceship_speed_x = 8
     spaceship_speed_y = 8
-    spaceship_lives = 3
-    spaceship_teleports = 3
-    spaceship_spawnpoint = (window_height - window_height / 4,window_width // 2 - spaceship_size[0] // 2)
+    initial_spaceship_lives = 3
+    initial_spaceship_teleports = 3
 
     # Asteroids
     asteroid_counter_delay = 100
@@ -30,15 +29,17 @@ class Settings(object):
     # Bonuses
     bonus_size = (35, 35)
     bonus_counter_delay = 400
-    bonus_heart_ration = (1, 10)
+    bonus_special_chance = (1, 10)
 
     # Fade & Text delay
-    point_text = (25, 25)
+    points_label_margin = (25, 25)
     click_to_start_alpha_speed = 0.7
     show_no_teleports_counter_delay = 250
 
     # Fonts
     font_type = "ChubbyChoo-Regular.ttf"
+    font_overlay_size = 30
+    font_title_size = 50
     font_color = (70, 108, 255)
     font_color_warning = (255, 70, 70)
 
@@ -68,11 +69,11 @@ class Settings(object):
 class Spaceship(pygame.sprite.Sprite):
     def __init__(self, filename):
         super().__init__()
+        self.spawnpoint = (Settings.window_height - Settings.window_height / 4, Settings.window_width // 2 - Settings.initial_spaceship_size[0] // 2)
         self.filename = filename
         self.update_sprite()
-        self.direction = "up"
         self.special_teleport_mask = False
-        self.teleport_to_spawnpoint()
+        self.teleport_to_coords(self.spawnpoint[0], self.spawnpoint[1])
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -80,11 +81,10 @@ class Spaceship(pygame.sprite.Sprite):
     # Update the Spaceship sprite
     def update_sprite(self):
         self.image = pygame.image.load(os.path.join(Settings.path_image, self.filename)).convert_alpha()
-        self.image = pygame.transform.scale(self.image, Settings.spaceship_size)
+        self.image = pygame.transform.scale(self.image, Settings.initial_spaceship_size)
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
 
-    # Move the Spaceship by the current direction
     def move_up(self):
         new_pos = self.rect.top - Settings.spaceship_speed_y
         if new_pos >= 0:
@@ -93,7 +93,7 @@ class Spaceship(pygame.sprite.Sprite):
 
     def move_down(self):
         new_pos = self.rect.top + Settings.spaceship_speed_y
-        if new_pos + Settings.spaceship_size[1] <= Settings.window_height:
+        if new_pos + Settings.initial_spaceship_size[1] <= Settings.window_height:
             self.rect.top = new_pos
         self.update_coords()
 
@@ -105,7 +105,7 @@ class Spaceship(pygame.sprite.Sprite):
 
     def move_right(self):
         new_pos = self.rect.left + Settings.spaceship_speed_x
-        if new_pos + Settings.spaceship_size[0] <= Settings.window_width:
+        if new_pos + Settings.initial_spaceship_size[0] <= Settings.window_width:
             self.rect.left = new_pos
         self.update_coords()
 
@@ -114,19 +114,8 @@ class Spaceship(pygame.sprite.Sprite):
         self.y = self.rect.top
         self.x = self.rect.left
 
-    # Sync the backup coords with the Spaceship rect coords
-    def sync_rect_coords(self):
-        self.rect.top = self.y
-        self.rect.left = self.x
-
-    # Teleport the spaceship to the default spawnpoint
-    def teleport_to_spawnpoint(self):
-        self.rect.top = Settings.spaceship_spawnpoint[0]
-        self.rect.left = Settings.spaceship_spawnpoint[1]
-        self.update_coords()
-
     # Teleport the spaceship to a custom coordinate
-    def teleport_to_coords(self, x, y):
+    def teleport_to_coords(self, y, x):
         self.rect.top = y
         self.rect.left = x
         self.update_coords()
@@ -139,21 +128,21 @@ class Spaceship(pygame.sprite.Sprite):
         if game.teleports - 1 >= 0:
             game.teleports -= 1
             self.update_coords()
-            random_x = random.randint(0, int(Settings.window_width - Settings.spaceship_size[0]))
-            random_y = random.randint(0, int(Settings.window_height - Settings.spaceship_size[1]))
+            random_x = random.randint(0, int(Settings.window_width - Settings.initial_spaceship_size[0]))
+            random_y = random.randint(0, int(Settings.window_height - Settings.initial_spaceship_size[1]))
 
-            self.image = pygame.transform.scale(self.image, (Settings.spaceship_size[0] * 4, Settings.spaceship_size[1] * 4))
+            self.image = pygame.transform.scale(self.image, (Settings.initial_spaceship_size[0] * 4, Settings.initial_spaceship_size[1] * 4))
             self.rect = self.image.get_rect()
             self.mask = pygame.mask.from_surface(self.image)
 
-            self.teleport_to_coords(random_x - (Settings.spaceship_size[0] * 4) // 2, random_y - (Settings.spaceship_size[1] * 4) // 2)
+            self.teleport_to_coords(random_y - (Settings.initial_spaceship_size[1] * 4) // 2, random_x - (Settings.initial_spaceship_size[0] * 4) // 2)
             pygame.sprite.spritecollide(self, game.asteroids, True)
 
-            self.image = pygame.transform.scale(self.image, Settings.spaceship_size)
+            self.image = pygame.transform.scale(self.image, Settings.initial_spaceship_size)
             self.rect = self.image.get_rect()
             self.mask = pygame.mask.from_surface(self.image)
 
-            self.teleport_to_coords(random_x, random_y)
+            self.teleport_to_coords(random_y, random_x)
         else:
             game.show_no_teleports = True
         
@@ -164,7 +153,7 @@ class Asteroid(pygame.sprite.Sprite):
         self.size_multiplier = random.uniform(1, Settings.max_asteroid_size_multiplier)
         self.update_sprite(filename)
         self.rect.left = random.randint(0, int(Settings.window_width - Settings.asteroid_size[0] * self.size_multiplier))
-        self.rect.top = 0 - (Settings.asteroid_size[1] * self.size_multiplier)
+        self.rect.top = -(Settings.asteroid_size[1] * self.size_multiplier)
 
     def update_sprite(self, filename):
         self.image = pygame.image.load(os.path.join(Settings.path_image, filename)).convert_alpha()
@@ -172,8 +161,20 @@ class Asteroid(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
     def update(self):
-        # Move the asteroid in direction to the bottom
         self.rect.top += self.speed
+
+        if pygame.sprite.spritecollide(self, game.spaceship, False, pygame.sprite.collide_mask):
+            game.lives -= 1
+
+            # If no lives are left end the game
+            if game.lives <= 0:
+                game.game_over = True
+
+            # Reset the Sprite location and clear the field
+            game.spaceship.sprite.teleport_to_coords(game.spaceship.sprite.spawnpoint[0], game.spaceship.sprite.spawnpoint[1])
+            game.asteroids.empty()
+            game.bonuses.empty()
+
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -185,7 +186,7 @@ class Bonus(pygame.sprite.Sprite):
         self.speed = random.randint(1, 4)
         self.update_sprite(filename)
         self.rect.left = random.randint(0, Settings.window_width - Settings.bonus_size[0])
-        self.rect.top = 0 - Settings.bonus_size[1]
+        self.rect.top = -Settings.bonus_size[1]
 
     def update_sprite(self, filename):
         self.image = pygame.image.load(os.path.join(Settings.path_image, filename)).convert_alpha()
@@ -193,8 +194,17 @@ class Bonus(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
     def update(self):
-        # Move the bonus in direction to the bottom
         self.rect.top += self.speed
+
+        # Bonus collision check with spaceship
+        if pygame.sprite.spritecollide(self, game.spaceship, False, pygame.sprite.collide_mask):
+            if self.type == "gem":
+                game.stats_points += 10
+            elif self.type == "heart":
+                game.lives += 1
+            elif self.type == "teleport":
+                game.teleports += 1
+            game.bonuses.remove(self)
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -204,37 +214,37 @@ class Background(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.image.load(os.path.join(Settings.path_image, filename)).convert()
         pygame.transform.scale(self.image, (Settings.window_width, Settings.window_height))
-        self.rect = self.image.get_rect()
 
     def draw(self, screen):
-        screen.blit(self.image, self.rect)
+        screen.blit(self.image, (0,0))
 
-class Game(object):
+class Game():
     def __init__(self):
         super().__init__()
+        # Game essential settings
+        os.environ['SDL_VIDEO_WINDOW_POS'] = '1'
         pygame.init()
-        # Pygame essential settings
         pygame.display.set_caption(Settings.title)
 
         self.screen = pygame.display.set_mode((Settings.window_width, Settings.window_height))
-        self.clock = pygame.time.Clock()
+        self.fps = pygame.time.Clock()
 
         # Define Sprites & Spritegroups
         self.background = Background(Settings.background_image)
-        self.spaceship = Spaceship(Settings.spaceship_image)
+        self.spaceship = pygame.sprite.GroupSingle()
+        self.spaceship.add(Spaceship(Settings.spaceship_image))
 
         self.asteroids = pygame.sprite.Group()
         self.bonuses = pygame.sprite.Group()
 
         # Set default game values
         self.running = True
-        self.collided = False
         self.pause_menu = True
         self.game_over = False
 
         # Set fonts for the game overlay
-        self.font = pygame.font.Font(os.path.join(Settings.path_font, Settings.font_type), 30)
-        self.overlay_font = pygame.font.Font(os.path.join(Settings.path_font, Settings.font_type), 50)
+        self.font = pygame.font.Font(os.path.join(Settings.path_font, Settings.font_type), Settings.font_overlay_size)
+        self.overlay_font = pygame.font.Font(os.path.join(Settings.path_font, Settings.font_type), Settings.font_title_size)
 
         # Reset the game stats
         self.reset_stats()
@@ -242,11 +252,10 @@ class Game(object):
     # Main game loop
     def run(self):
         while self.running:
-            self.clock.tick(Settings.clock)
-            if self.game_over == False:
-                if self.pause_menu == False:
-                    self.watch_for_control_events()
-                    self.update()
+            self.fps.tick(Settings.fps)
+            if self.game_over == False and self.pause_menu == False:
+                self.watch_for_control_events()
+                self.update()
 
             self.watch_for_events()
             self.update_overlay()
@@ -262,11 +271,11 @@ class Game(object):
         pygame.display.flip()
 
     def update_overlay(self):
-        if self.game_over == True or self.pause_menu == True:
+        if self.game_over or self.pause_menu:
             # Set Overlay title
             if self.game_over:
                 header_text = Settings.text_game_over
-            if self.pause_menu:
+            elif self.pause_menu:
                 header_text = Settings.text_welcome_to
 
             header_text = self.overlay_font.render(header_text, True, Settings.font_color)
@@ -287,11 +296,11 @@ class Game(object):
 
             # Fade Animation for the "click to start" text
             if self.alpha_counter >= 99:
-                self.alpha_direction = "down"
+                self.alpha_direction = 0
             elif self.alpha_counter <= 1:
-                self.alpha_direction = "up"
+                self.alpha_direction = 1
 
-            if self.alpha_direction == "up":
+            if self.alpha_direction == 1:
                 self.alpha_counter += Settings.click_to_start_alpha_speed
             else:
                 self.alpha_counter -= Settings.click_to_start_alpha_speed
@@ -303,15 +312,15 @@ class Game(object):
             # Hud/Stats Rendering
             # Render Points
             points = self.font.render(Settings.text_points.format(self.stats_points), True, Settings.font_color)
-            self.screen.blit(points, Settings.point_text)
+            self.screen.blit(points, Settings.points_label_margin)
 
             # Render Lives
             lives = self.font.render(Settings.text_lives.format(self.lives), True, Settings.font_color)
-            self.screen.blit(lives, (Settings.point_text[0], Settings.point_text[1] * 2))
+            self.screen.blit(lives, (Settings.points_label_margin[0], Settings.points_label_margin[1] * 2))
 
             # Render Teleports
             teleports = self.font.render(Settings.text_teleports.format(self.teleports), True, Settings.font_color)
-            self.screen.blit(teleports, (Settings.point_text[0], Settings.point_text[1] * 3))
+            self.screen.blit(teleports, (Settings.points_label_margin[0], Settings.points_label_margin[1] * 3))
 
             if self.show_no_teleports == True:
                 self.show_no_teleports_counter += 1
@@ -325,41 +334,8 @@ class Game(object):
 
     def update(self):
         # Update the spawn counters
-        self.asteroid_counter += 1
         self.bonus_counter += 1
-
-        # Asteroid collision check
-        if pygame.sprite.spritecollide(self.spaceship, self.asteroids, False) and self.collided == False:
-            for asteroid in self.asteroids:
-                # Check for mask collision
-                if pygame.sprite.collide_mask(self.spaceship, asteroid):
-                    self.lives -= 1
-                    self.collided = True
-
-                    # If no lives are left end the game
-                    if self.lives <= 0:
-                        self.game_over = True
-
-                    # Reset the Sprite location and clear the field
-                    self.spaceship.teleport_to_spawnpoint()
-                    self.asteroids.empty()
-                    self.bonuses.empty()
-                    self.collided = False
-
-         # Bonus collision check
-        if pygame.sprite.spritecollide(self.spaceship, self.bonuses, False) and self.collided == False:
-            for bonus in self.bonuses:
-                if pygame.sprite.collide_mask(self.spaceship, bonus):
-                    self.collided = True
-                    # Check collision with powerups
-                    if bonus.type == "gem":
-                        self.stats_points += 10
-                    if bonus.type == "heart":
-                        self.lives += 1
-                    if bonus.type == "teleport":
-                        self.teleports += 1
-                    self.bonuses.remove(bonus)
-                    self.collided = False
+        self.asteroid_counter += 1
 
         # Update Asteroids & check window collisions
         for asteroid in self.asteroids:
@@ -389,7 +365,7 @@ class Game(object):
 
         # Check Bonus delay
         if self.bonus_counter >= Settings.bonus_counter_delay:
-            if random.randint(Settings.bonus_heart_ration[0], Settings.bonus_heart_ration[1]) < Settings.bonus_heart_ration[1]:
+            if random.randint(Settings.bonus_special_chance[0], Settings.bonus_special_chance[1]) < Settings.bonus_special_chance[1]:
                 self.bonuses.add(Bonus(Settings.gem_blue_image, "gem"))
             else:
                 if random.randint(1, 2) == 1:
@@ -405,12 +381,12 @@ class Game(object):
         self.bonus_counter = 0
         self.asteroid_counter_speed = 0
         self.asteroid_counter_delay = Settings.asteroid_counter_delay
-        self.lives = Settings.spaceship_lives
-        self.teleports = Settings.spaceship_teleports
+        self.lives = Settings.initial_spaceship_lives
+        self.teleports = Settings.initial_spaceship_teleports
         self.show_no_teleports = False
         self.show_no_teleports_counter = 0
         self.alpha_counter = 0
-        self.alpha_direction = "down"
+        self.alpha_direction = 0
 
     def reset_game(self):
         self.reset_stats()
@@ -436,27 +412,26 @@ class Game(object):
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_SPACE:
                     if self.pause_menu == False and self.game_over == False:
-                        self.spaceship.special_teleport()
+                        self.spaceship.sprite.special_teleport()
 
     # Check for control press events
     def watch_for_control_events(self):
         pressed = pygame.key.get_pressed()
         if pressed[pygame.K_w] or pressed[pygame.K_UP]:
-            self.spaceship.move_up()
+            self.spaceship.sprite.move_up()
 
         if pressed[pygame.K_s] or pressed[pygame.K_DOWN]:
-            self.spaceship.move_down()
+            self.spaceship.sprite.move_down()
 
         if pressed[pygame.K_d] or pressed[pygame.K_RIGHT]:
-            self.spaceship.move_right()
+            self.spaceship.sprite.move_right()
 
         if pressed[pygame.K_a] or pressed[pygame.K_LEFT]:
-            self.spaceship.move_left()
+            self.spaceship.sprite.move_left()
 
         if pressed[pygame.K_ESCAPE]:
             self.running = False
 
 if __name__ == '__main__':
-    os.environ['SDL_VIDEO_WINDOW_POS'] = '1'
     game = Game()
     game.run()
