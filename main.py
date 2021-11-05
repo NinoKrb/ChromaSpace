@@ -19,9 +19,9 @@ class Settings(object):
     spaceship_spawnpoint = (window_height - window_height / 4,window_width // 2 - spaceship_size[0] // 2)
 
     asteroid_counter_delay = 100
-    max_asteroid_counter_delay = 50
+    max_asteroid_counter_delay = 20 # default 50
     max_asteroid_size_multiplier = 2
-    asteroid_default_speed_y = 5
+    asteroid_default_multiplier = 2 # default 1
     asteroid_size = (54, 45)
 
     bonus_size = (35, 35)
@@ -325,6 +325,8 @@ class Game(object):
                         self.stats_points += 10
                     if bonus.type == "heart":
                         self.lives += 1
+                    if bonus.type == "teleport":
+                        self.teleports += 1
                     self.bonuses.remove(bonus)
                     self.collided = False
 
@@ -345,7 +347,7 @@ class Game(object):
 
         # Check Asteroid delay
         if self.asteroid_counter >= self.asteroid_counter_delay:
-            multiplier = 1 + self.asteroid_counter_speed
+            multiplier = Settings.asteroid_default_multiplier + self.asteroid_counter_speed
             self.asteroids.add(Asteroid("asteroid.png", multiplier))
             self.asteroid_counter = 0
 
@@ -359,7 +361,10 @@ class Game(object):
             if random.randint(Settings.bonus_heart_ration[0], Settings.bonus_heart_ration[1]) < Settings.bonus_heart_ration[1]:
                 self.bonuses.add(Bonus("blue-gem.png", "gem"))
             else:
-                self.bonuses.add(Bonus("red-gem.png", "heart"))
+                if random.randint(1, 2) == 1:
+                    self.bonuses.add(Bonus("red-gem.png", "heart"))
+                else:
+                    self.bonuses.add(Bonus("purple-gem.png", "teleport"))
             self.bonus_counter = 0
 
     def reset_stats(self):  # Reset the player stats
