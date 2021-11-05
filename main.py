@@ -135,7 +135,7 @@ class Asteroid(pygame.sprite.Sprite):
 
     def update_sprite(self, filename):          # Update the asteroid sprite
         self.image = pygame.image.load(os.path.join(Settings.path_image, filename)).convert_alpha()
-        self.image = pygame.transform.scale(self.image, (Settings.asteroid_size[0] * self.size_multiplier, Settings.asteroid_size[1] * self.size_multiplier))
+        self.image = pygame.transform.scale(self.image, (int(Settings.asteroid_size[0] * self.size_multiplier), int(Settings.asteroid_size[1] * self.size_multiplier)))
         self.rect = self.image.get_rect()
 
     def update(self):
