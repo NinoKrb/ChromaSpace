@@ -1,9 +1,6 @@
 import pygame
-import sys
-import time
 import os
 import random
-
 
 class Settings(object):
     window_height = 1000
