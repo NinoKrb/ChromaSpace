@@ -1,4 +1,5 @@
 import pygame
+import pygame.mixer
 import os
 import random
 
@@ -9,8 +10,11 @@ class Settings():
     base_file = os.path.dirname(os.path.abspath(__file__))
     path_image = os.path.join(base_file, "assets/images/")
     path_font = os.path.join(base_file, "assets/fonts/")
+    path_sounds = os.path.join(base_file, "assets/sounds/")
     title = "ChromaSpace - The Game"
     fps = 60
+
+    soundtrack = 'Intergalactic_Odyssey.wav'
 
     # Spaceship
     initial_spaceship_size = (75, 104)
@@ -38,6 +42,7 @@ class Settings():
 
     # Fonts
     font_type = "ChubbyChoo-Regular.ttf"
+    font_info_size = 22
     font_overlay_size = 30
     font_title_size = 50
     font_color = (70, 108, 255)
@@ -46,6 +51,7 @@ class Settings():
     # Text
     text_game_over = "Game Over"
     text_welcome_to = "Welcome to"
+    text_keybinds = "[m] Mute/Unmute Music | [+] Volume up | [-] Volume down"
     text_no_teleports = "You have no Teleports left"
     text_your_score = "Your Score: {}"
     text_points = "{} Points"
@@ -218,6 +224,43 @@ class Background(pygame.sprite.Sprite):
     def draw(self, screen):
         screen.blit(self.image, (0,0))
 
+class Sound():
+    def __init__(self, soundtrack):
+        self.soundtrack = soundtrack
+        self.volume = 0.25
+        self.muted = False
+
+        # Initalise Pygame soundmixer (frequence, size, channels, buffer)
+        pygame.mixer.init(48000, -16, 1, 1024)
+
+    def load_soundtrack(self):
+        pygame.mixer.music.load(os.path.join(Settings.path_sounds, self.soundtrack))
+        pygame.mixer.music.play()
+        pygame.mixer.music.set_volume(self.volume)
+        pygame.mixer.music.fadeout(90000)
+
+    def volume_up(self):
+        if self.volume - 0.05 <= 1:
+            self.volume += 0.05
+            pygame.mixer.music.set_volume(self.volume)
+
+    def volume_down(self):
+        if 0.05 <= self.volume:
+            self.volume -= 0.05
+            pygame.mixer.music.set_volume(self.volume)
+
+    def toggle_mute(self):
+        self.muted = not self.muted
+        self.last_volume = self.volume
+        if self.muted:
+            pygame.mixer.music.set_volume(0)
+        else:
+            pygame.mixer.music.set_volume(self.last_volume)
+
+    def check_music(self):
+        if not pygame.mixer.music.get_busy() and not self.muted:
+            self.load_soundtrack()
+
 class Game():
     def __init__(self):
         super().__init__()
@@ -228,6 +271,10 @@ class Game():
 
         self.screen = pygame.display.set_mode((Settings.window_width, Settings.window_height))
         self.fps = pygame.time.Clock()
+
+        # Init Gametrack sounds
+        self.sound_mixer = Sound(Settings.soundtrack)
+        self.sound_mixer.load_soundtrack()
 
         # Define Sprites & Spritegroups
         self.background = Background(Settings.background_image)
@@ -245,6 +292,7 @@ class Game():
         # Set fonts for the game overlay
         self.font = pygame.font.Font(os.path.join(Settings.path_font, Settings.font_type), Settings.font_overlay_size)
         self.overlay_font = pygame.font.Font(os.path.join(Settings.path_font, Settings.font_type), Settings.font_title_size)
+        self.info_font = pygame.font.Font(os.path.join(Settings.path_font, Settings.font_type), Settings.font_info_size)
 
         # Reset the game stats
         self.reset_stats()
@@ -258,7 +306,7 @@ class Game():
                 self.update()
 
             self.watch_for_events()
-            self.update_overlay()
+            self.sound_mixer.check_music()
             self.draw()
 
     # Draw all sprites
@@ -272,7 +320,7 @@ class Game():
 
     def update_overlay(self):
         if self.game_over or self.pause_menu:
-            # Set Overlay title
+            # Set/Render Overlay title
             if self.game_over:
                 header_text = Settings.text_game_over
             elif self.pause_menu:
@@ -293,6 +341,10 @@ class Game():
             # Loading "click to start" text
             click_to_start = pygame.image.load(os.path.join(Settings.path_image, Settings.click_to_start_image)).convert_alpha()
             click_to_start = pygame.transform.scale(click_to_start, (351, 85))
+
+            # Render Keybinds info
+            keybinds_text = self.info_font.render(Settings.text_keybinds, True, Settings.font_color)
+            self.screen.blit(keybinds_text, (Settings.window_width // 2 - keybinds_text.get_rect().centerx, Settings.window_height - Settings.window_height // 10))
 
             # Fade Animation for the "click to start" text
             if self.alpha_counter >= 99:
@@ -408,6 +460,16 @@ class Game():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:
                     self.pause_menu = not self.pause_menu
+
+                # Soundtrack Soundsettings
+                elif event.key == pygame.K_m:
+                    self.sound_mixer.toggle_mute()
+
+                elif event.key == pygame.K_PLUS:
+                    self.sound_mixer.volume_up()
+
+                elif event.key == pygame.K_MINUS:
+                    self.sound_mixer.volume_down()
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_SPACE:

@@ -25,3 +25,6 @@ http://pixelartmaker.com/art/276274ea71933f0
 
 Gem Sprite
 https://toppng.com/uploads/preview/blue-gem-sprite-pixel-art-11563364439fqmnkurprh.png
+
+Game Soundtrack: Intergalactic Odyssey by Patrick de Arteaga
+patrickdearteaga.com or https://patrickdearteaga.com/arcade-music/
