@@ -72,6 +72,10 @@ class Settings():
     gem_red_image = "red-gem.png"
     gem_purple_image = "purple-gem.png"
 
+    # Soundtrack
+    default_volume = 0.25
+    sound_steps = 0.05
+
 class Spaceship(pygame.sprite.Sprite):
     def __init__(self, filename):
         super().__init__()
@@ -227,7 +231,7 @@ class Background(pygame.sprite.Sprite):
 class Sound():
     def __init__(self, soundtrack):
         self.soundtrack = soundtrack
-        self.volume = 0.25
+        self.volume = Settings.default_volume
         self.muted = False
 
         # Initalise Pygame soundmixer (frequence, size, channels, buffer)
@@ -240,13 +244,13 @@ class Sound():
         pygame.mixer.music.fadeout(90000)
 
     def volume_up(self):
-        if self.volume - 0.05 <= 1:
-            self.volume += 0.05
+        if self.volume - Settings.sound_steps <= 1:
+            self.volume += Settings.sound_steps
             pygame.mixer.music.set_volume(self.volume)
 
     def volume_down(self):
-        if 0.05 <= self.volume:
-            self.volume -= 0.05
+        if Settings.sound_steps <= self.volume:
+            self.volume -= Settings.sound_steps
             pygame.mixer.music.set_volume(self.volume)
 
     def toggle_mute(self):
